@@ -2,6 +2,7 @@
 
 class Board {
     private $figures = [];
+    private $lastIsBlack = true;
 
     public function __construct() {
         $this->figures['a'][1] = new Rook(false);
@@ -46,13 +47,37 @@ class Board {
             throw new \Exception("Incorrect move");
         }
 
+
         $xFrom = $match[1];
         $yFrom = $match[2];
         $xTo   = $match[3];
         $yTo   = $match[4];
 
         if (isset($this->figures[$xFrom][$yFrom])) {
-            $this->figures[$xTo][$yTo] = $this->figures[$xFrom][$yFrom];
+            /** @var Figure $figure */
+            $figure = $this->figures[$xFrom][$yFrom];
+
+            if ($figure->getIsBlack() ===  $this->lastIsBlack) {
+                throw new Exception('Ошибка очередности кода');
+            }
+
+            $isAttack = false;
+
+            if (isset($this->figures[$xTo][$yTo])) {
+                $isAttack = true;
+            }
+
+            if (!$figure->isValidMove($xFrom, $yFrom, $xTo, $yTo, $isAttack)) {
+                throw new Exception('Ошибка хода');
+            }
+
+            $this->checkJumpFigure($xFrom, $yFrom, $xTo, $yTo, $figure);
+
+
+            $this->figures[$xTo][$yTo] = $figure;
+            $this->lastIsBlack = $figure->getIsBlack();
+
+            $figure->addStep();
         }
         unset($this->figures[$xFrom][$yFrom]);
     }
@@ -70,5 +95,35 @@ class Board {
             echo "\n";
         }
         echo "  abcdefgh\n";
+    }
+
+    private function checkJumpFigure(
+        string $xFrom,
+        int $yFrom,
+        string $xTo,
+        int $yTo,
+        Figure $figure
+    ): void {
+        if ($figure->isCanJump()) {
+            return;
+        }
+
+
+        if ($yFrom === $yTo) {
+            return;
+        }
+
+        if ($figure->getIsBlack()) {
+            $yFrom = $yFrom - 1;
+        } else {
+            $yFrom = $yFrom + 1;
+        }
+
+
+        if (isset($this->figures[$xFrom][$yFrom])) {
+            throw new Exception('Ошибка данной фигурой нельзя перепрыгивать');
+        }
+
+
     }
 }
